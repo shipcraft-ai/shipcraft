@@ -9,7 +9,24 @@ This file provides guidance to Claude Code when working with code in this reposi
 - Use clear technical language
 
 ## Project Overview
-vibesdk is an AI-powered full-stack application generation platform built on Cloudflare infrastructure.
+
+# ShipCraft AI
+
+**Domain**: `shipcraft.ai`
+**Customer Apps**: `*.goeslive.dev` (e.g., `myapp.goeslive.dev`)
+
+AI-powered full-stack application generation platform built on Cloudflare infrastructure. Transform natural language into production-ready React applications with live preview and one-click deployment.
+
+**Tagline**: "Ship faster. Craft better."
+
+**Target**: Solo developers and small teams/startups
+**Goal**: Build a Lovable-like SaaS with deep Cloudflare integration
+
+### Brand Identity
+- **Name**: ShipCraft AI
+- **Main Domain**: shipcraft.ai
+- **Customer Apps Domain**: goeslive.dev
+- **Value Proposition**: Speed ("Ship") + Quality ("Craft") + AI
 
 **Tech Stack:**
 - Frontend: React 19, TypeScript, Vite, TailwindCSS, React Router v7
@@ -191,3 +208,290 @@ Edit `/worker/agents/operations/UserConversationProcessor.ts` (system prompt lin
 - Keep comments concise and purposeful
 - Write production-ready code
 - Test thoroughly before submitting
+
+## SaaS Features (In Development)
+
+### Billing & Subscriptions
+**Provider**: Stripe
+**Location**: `worker/services/billing/`
+
+**Subscription Tiers:**
+| Tier | Price | Apps | LLM Calls/Day | Storage | Custom Domains | Teams |
+|------|-------|------|---------------|---------|----------------|-------|
+| Free | $0 | 3 | 50 | 100MB | 0 | No |
+| Starter | $19/mo | 10 | 500 | 1GB | 1 | No |
+| Pro | $49/mo | 50 | 2,000 | 10GB | 5 | Yes |
+| Enterprise | Custom | Unlimited | Unlimited | Unlimited | Unlimited | Yes |
+
+**Database Tables (billing):**
+- `subscription_plans` - Plan definitions (cached from Stripe)
+- `subscriptions` - User subscriptions
+- `usage_records` - Usage tracking per billing period
+- `stripe_events` - Webhook event log
+
+### Multi-Tenancy
+**Location**: `worker/services/rbac/`, `worker/database/services/OrganizationService.ts`
+
+**RBAC Model:**
+```
+Organization
+├── owner     - Full control, billing, delete org
+├── admin     - Member management, settings, all apps
+├── member    - Create/edit apps in team
+└── viewer    - Read-only access
+```
+
+**Database Tables (multi-tenancy):**
+- `organizations` - Organization entities
+- `organization_members` - Membership with roles
+- `teams` - Teams within organizations
+- `organization_invites` - Pending invitations
+
+### Custom Domains
+**Location**: `worker/services/domains/`
+**Integration**: Cloudflare Custom Hostnames API
+
+**Database Tables (domains):**
+- `custom_domains` - User custom domains with SSL status
+- `domain_registrations` - Registered domains (via Cloudflare Registrar)
+- `domain_availability_cache` - Domain search cache
+
+### Admin Panel
+**Location**: `src/routes/admin/`, `worker/api/controllers/admin/`
+**Access**: Users with `is_admin=1` and `admin_role` set
+
+### New Environment Variables (SaaS)
+```env
+# Domains
+MAIN_DOMAIN=shipcraft.ai
+CUSTOMER_APPS_DOMAIN=goeslive.dev
+CUSTOM_DOMAIN=goeslive.dev
+
+# Stripe
+STRIPE_SECRET_KEY=sk_xxx
+STRIPE_PUBLISHABLE_KEY=pk_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+
+# Cloudflare Domains (for Custom Hostnames)
+CLOUDFLARE_ZONE_ID=xxx
+```
+
+### URLs Structure
+- **Main App**: https://shipcraft.ai
+- **API**: https://api.shipcraft.ai (or https://shipcraft.ai/api)
+- **Customer Apps**: https://{app-name}.goeslive.dev
+- **Example**: https://my-awesome-app.goeslive.dev
+
+## Development Phases
+
+### Phase 1: MVP - Monetization (Current)
+- [ ] Billing database schema
+- [ ] Stripe service integration
+- [ ] Subscription management
+- [ ] Usage tracking & quota enforcement
+- [ ] Pricing page
+- [ ] Billing dashboard
+
+### Phase 2: Core SaaS Features
+- [ ] Organizations & teams
+- [ ] RBAC permissions
+- [ ] Custom domain management
+- [ ] Domain registration (Cloudflare Registrar)
+- [ ] Admin panel
+
+### Phase 3: Growth Features
+- [ ] Webhook system
+- [ ] Email service (Resend/MailChannels)
+- [ ] Analytics dashboard
+- [ ] Version history & rollback
+
+### Phase 4: Enterprise Features
+- [ ] SSO/SAML
+- [ ] Feature flags
+- [ ] Template marketplace
+- [ ] White-labeling
+
+## Quick Reference
+
+**Add Billing Endpoint:**
+1. Add types to `src/api-types.ts`
+2. Create handler in `worker/api/controllers/billing/controller.ts`
+3. Add route in `worker/api/routes/billingRoutes.ts`
+4. Add to API client in `src/lib/api-client.ts`
+
+**Add Organization Feature:**
+1. Update schema in `worker/database/schema.ts`
+2. Create service in `worker/database/services/OrganizationService.ts`
+3. Add permission check via `worker/services/rbac/PermissionService.ts`
+
+**Quota Enforcement:**
+- Check quotas in middleware before protected operations
+- Record usage in `usage_records` table
+- Return 402 Payment Required if exceeded
+
+## Git Workflow & Upstream Sync
+
+### Repository Structure
+```
+cloudflare/vibesdk (upstream) ─── Original Cloudflare repo
+         │
+         ▼ Fork
+your-github/shipcraft (origin) ─── Your fork with custom features
+         │
+         ▼ Deploy
+Cloudflare Workers (shipcraft.ai)
+```
+
+### Initial Setup
+```bash
+# Clone your fork
+git clone https://github.com/YOUR-USERNAME/shipcraft.git
+cd shipcraft
+
+# Add upstream remote
+git remote add upstream https://github.com/cloudflare/vibesdk.git
+
+# Verify remotes
+git remote -v
+# origin    github.com/YOUR-USERNAME/shipcraft.git (your fork)
+# upstream  github.com/cloudflare/vibesdk.git (Cloudflare's repo)
+```
+
+### Syncing Upstream Updates
+```bash
+# Fetch latest from Cloudflare
+git fetch upstream
+
+# Merge into your main branch
+git checkout main
+git merge upstream/main
+
+# Resolve conflicts if any, then push
+git push origin main
+```
+
+### Avoiding Merge Conflicts
+
+**CRITICAL: Follow these rules to minimize conflicts when Cloudflare updates vibesdk**
+
+#### 1. Custom Code Goes in NEW Folders
+```
+worker/services/
+├── billing/           ← OUR CODE (new folder)
+├── domains/           ← OUR CODE (new folder)
+├── rbac/              ← OUR CODE (new folder)
+├── sandbox/           ← UPSTREAM (don't modify)
+├── oauth/             ← UPSTREAM (don't modify)
+└── rate-limit/        ← UPSTREAM (don't modify)
+
+src/routes/
+├── billing/           ← OUR CODE (new folder)
+├── admin/             ← OUR CODE (new folder)
+├── pricing/           ← OUR CODE (new folder)
+├── chat/              ← UPSTREAM (don't modify)
+├── apps/              ← UPSTREAM (don't modify)
+└── home/              ← UPSTREAM (don't modify)
+
+src/components/
+├── billing/           ← OUR CODE (new folder)
+├── admin/             ← OUR CODE (new folder)
+├── domains/           ← OUR CODE (new folder)
+└── ui/                ← UPSTREAM (don't modify)
+```
+
+#### 2. Database Schema - Add at END
+```typescript
+// worker/database/schema.ts
+
+// ========== UPSTREAM TABLES (don't modify) ==========
+export const users = sqliteTable('users', { ... });
+export const apps = sqliteTable('apps', { ... });
+// ... other upstream tables ...
+
+// ========== SHIPCRAFT CUSTOM TABLES (add below) ==========
+// Add all custom tables AFTER upstream tables to avoid conflicts
+
+export const subscriptionPlans = sqliteTable('subscription_plans', { ... });
+export const subscriptions = sqliteTable('subscriptions', { ... });
+export const usageRecords = sqliteTable('usage_records', { ... });
+export const organizations = sqliteTable('organizations', { ... });
+// ... our custom tables ...
+```
+
+#### 3. Route Registration - Separate Section
+```typescript
+// worker/api/routes/index.ts
+
+// ========== UPSTREAM ROUTES ==========
+setupAuthRoutes(app);
+setupAppRoutes(app);
+// ... upstream routes ...
+
+// ========== SHIPCRAFT CUSTOM ROUTES ==========
+setupBillingRoutes(app);      // Our billing routes
+setupAdminRoutes(app);        // Our admin routes
+setupOrganizationRoutes(app); // Our org routes
+```
+
+#### 4. API Client - Add Methods at End
+```typescript
+// src/lib/api-client.ts
+
+// Add our methods at the END of the apiClient object
+export const apiClient = {
+  // ... upstream methods ...
+
+  // ========== SHIPCRAFT CUSTOM METHODS ==========
+  billing: {
+    getPlans: () => fetchApi('/billing/plans'),
+    getSubscription: () => fetchApi('/billing/subscription'),
+    // ...
+  },
+  admin: { ... },
+  organizations: { ... },
+};
+```
+
+#### 5. Files We CAN Modify (with care)
+| File | How to Modify |
+|------|---------------|
+| `worker/database/schema.ts` | Add tables at END only |
+| `worker/api/routes/index.ts` | Add imports & setup calls at END |
+| `src/lib/api-client.ts` | Add methods at END |
+| `src/App.tsx` | Add context providers (wrap existing) |
+| `package.json` | Add dependencies (auto-merges usually) |
+| `wrangler.jsonc` | Add bindings at END |
+
+#### 6. Files We Should NOT Modify
+- `worker/agents/*` - Core AI agent logic
+- `worker/services/sandbox/*` - Sandbox service
+- `src/routes/chat/*` - Chat UI
+- `src/components/ui/*` - Base UI components
+- Any existing upstream component/service
+
+### Conflict Resolution Strategy
+```bash
+# If conflicts occur during merge:
+
+# 1. Check which files have conflicts
+git status
+
+# 2. For each conflicted file:
+#    - Keep UPSTREAM changes for their code sections
+#    - Keep OUR changes for our custom sections
+#    - If both modified same line, prefer upstream + re-add our code
+
+# 3. After resolving
+git add .
+git commit -m "Merge upstream/main - resolved conflicts"
+git push origin main
+```
+
+### Recommended Branch Strategy
+```
+main ─────────────────────────────────► Production
+  │
+  ├── feature/billing ──────► Merge to main when ready
+  ├── feature/domains ──────► Merge to main when ready
+  └── upstream-sync ────────► Temporary branch for merging upstream
+```

@@ -55,3 +55,36 @@ debug-tools/presentation-tester
 
 .test-data
 cli
+
+# ShipCraft Custom
+.claude/
+*.plan.md
+.dev.vars
+.prod.vars
+secrets.json
+*.pem
+*.key
+
+# IDE
+.cursor/
+.windsurf/
+
+# Local databases
+*.sqlite
+*.db
+local.db
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Build artifacts
+.turbo/
+.next/
+.nuxt/
+.output/
+
+# OS files
+Thumbs.db
+*.swp
+*~
